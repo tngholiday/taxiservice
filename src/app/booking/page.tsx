@@ -6,26 +6,32 @@ const rideOptions = [
   {
     name: "Luxury Sedan",
     time: "1 min",
+    timeValue: 1,
     desc: "Premium sedan with leather seats and professional chauffeur",
     icon: "🚘",
     capacity: "4 passengers",
-    features: ["Leather seats", "Climate control", "WiFi", "Refreshments"]
+    features: ["Leather seats", "Climate control", "WiFi", "Refreshments"],
+    price: 2500
   },
   {
     name: "Luxury SUV",
     time: "2 min",
+    timeValue: 2,
     desc: "Spacious luxury SUV for comfortable group travel",
     icon: "🚙",
     capacity: "6 passengers",
-    features: ["Premium leather", "Climate control", "WiFi", "Refreshments"]
+    features: ["Premium leather", "Climate control", "WiFi", "Refreshments"],
+    price: 3500
   },
   {
     name: "Luxury Van",
     time: "3 min",
+    timeValue: 3,
     desc: "Executive van for larger groups with extra comfort",
     icon: "🚐",
     capacity: "8 passengers",
-    features: ["Premium leather", "Climate control", "WiFi", "Refreshments", "Extra luggage space"]
+    features: ["Premium leather", "Climate control", "WiFi", "Refreshments", "Extra luggage space"],
+    price: 4500
   }
 ];
 
@@ -88,6 +94,7 @@ export default function BookingPage() {
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [whenLocation, setWhenLocation] = useState("Now");
+  const [selectedRide, setSelectedRide] = useState<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import('leaflet').Map | null>(null);
   const markerRef = useRef<import('leaflet').Marker | null>(null);
@@ -173,7 +180,7 @@ export default function BookingPage() {
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row">
       {/* Left Panel */}
-      <div className="w-full md:w-[40%] bg-white flex flex-col min-h-[300px] md:min-h-screen shadow-lg">
+      <div className="w-full md:w-[40%] bg-white flex flex-col min-h-[300px] md:min-h-screen shadow-lg relative">
         {/* Header */}
         <div className="p-4 border-b">
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">Book a Ride</h1>
@@ -304,33 +311,108 @@ export default function BookingPage() {
         {/* Available Rides */}
         <div className="px-2 md:px-4 py-3 text-xs md:text-sm text-gray-600 font-semibold">AVAILABLE RIDES</div>
         <div className="flex-1 overflow-y-auto px-2 pb-4">
-          <div className="bg-white rounded shadow border">
+          <div className="grid grid-cols-1 gap-3">
             {rideOptions.map((ride) => (
               <div
                 key={ride.name}
-                className={`flex flex-col xs:flex-row items-start xs:items-center gap-2 xs:gap-3 px-2 md:px-4 py-3 border-b last:border-b-0 hover:bg-red-50 cursor-pointer`}
+                onClick={() => setSelectedRide(ride.name)}
+                className={`bg-white rounded-lg shadow-sm border transition-all duration-200 cursor-pointer ${
+                  selectedRide === ride.name 
+                    ? 'border-red-500 shadow-md bg-red-50' 
+                    : 'border-gray-100 hover:border-red-200 hover:shadow-md'
+                }`}
               >
-                <span className="text-2xl">{ride.icon}</span>
-                <div className="flex-1">
-                  <div className="flex flex-col xs:flex-row items-start xs:items-center gap-1 xs:gap-2">
-                    <span className="font-semibold text-sm md:text-base text-gray-900">{ride.name}</span>
-                    <span className="text-[11px] text-gray-500 ml-0 xs:ml-2">{ride.time}</span>
-                    <span className="text-[11px] bg-red-100 text-red-700 px-2 py-1 rounded-full">{ride.capacity}</span>
-                  </div>
-                  <div className="text-xs text-gray-500">{ride.desc}</div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {ride.features.map((feature, index) => (
-                      <span key={index} className="text-[10px] bg-red-50 text-red-700 px-2 py-0.5 rounded-full">
-                        {feature}
-                      </span>
-                    ))}
+                <div className="p-4">
+                  <div className="flex items-start gap-4">
+                    <div className={`p-3 rounded-lg ${
+                      selectedRide === ride.name ? 'bg-red-100' : 'bg-red-50'
+                    }`}>
+                      <span className="text-2xl">{ride.icon}</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className={`font-semibold ${
+                            selectedRide === ride.name ? 'text-red-700' : 'text-gray-900'
+                          }`}>{ride.name}</h3>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            selectedRide === ride.name 
+                              ? 'bg-red-200 text-red-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>{ride.capacity}</span>
+                        </div>
+                        <span className={`text-sm font-medium ${
+                          selectedRide === ride.name ? 'text-red-600' : 'text-red-600'
+                        }`}>{ride.time}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mb-3">{ride.desc}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {ride.features.map((feature, index) => (
+                          <span 
+                            key={index} 
+                            className={`text-xs px-2 py-1 rounded-full border ${
+                              selectedRide === ride.name
+                                ? 'bg-red-50 text-red-600 border-red-100'
+                                : 'bg-gray-50 text-gray-600 border-gray-100'
+                            }`}
+                          >
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <span className="text-lg text-red-600">&gt;</span>
+                <div className={`px-4 py-3 border-t rounded-b-lg flex items-center justify-end ${
+                  selectedRide === ride.name ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'
+                }`}>
+                  <button className={`font-medium text-sm ${
+                    selectedRide === ride.name 
+                      ? 'text-red-700 hover:text-red-800' 
+                      : 'text-red-600 hover:text-red-700'
+                  }`}>
+                    {selectedRide === ride.name ? 'Selected' : 'Select'}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </div>
+        
+        {/* Bottom Summary Bar */}
+        {selectedRide && (
+          <div className="fixed bottom-0 left-0 md:left-[40%] right-0 bg-white border-t border-gray-200 shadow-lg p-4 z-50">
+            <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">
+                    {rideOptions.find(ride => ride.name === selectedRide)?.icon}
+                  </span>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      {selectedRide}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {selectedArea} → {selectedAirport}
+                      {selectedTerminal && ` (${selectedTerminal})`}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Total Fare</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    ¥{rideOptions.find(ride => ride.name === selectedRide)?.price.toLocaleString()}
+                  </p>
+                </div>
+                <button className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200">
+                  Book Now
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       {/* Right Panel: Leaflet Map */}
       <div className="w-full md:w-[60%] min-h-[300px] md:min-h-screen relative flex items-center justify-center bg-gray-100">
