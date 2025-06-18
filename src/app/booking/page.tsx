@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
 
 const rideOptions = [
   {
@@ -97,7 +98,6 @@ export default function BookingPage() {
   const [selectedTerminal, setSelectedTerminal] = useState("");
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
-  const [whenLocation, setWhenLocation] = useState("Now");
   const [selectedRide, setSelectedRide] = useState<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import('leaflet').Map | null>(null);
@@ -177,7 +177,6 @@ export default function BookingPage() {
           if (!terminal || !mapRef.current) return;
           const { lat, lng } = e.latlng;
           setDropoffCoords({ lat, lng });
-          setWhenLocation(`Drop-off at ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
           if (dropoffMarkerRef.current) {
             dropoffMarkerRef.current.setLatLng([lat, lng]);
           } else {
@@ -207,7 +206,6 @@ export default function BookingPage() {
   const handleDropoffSelect = (location: string) => {
     setDropoffSearch(location);
     setShowDropoffDropdown(false);
-    setWhenLocation(`Drop-off at ${location}`);
     
     // Find coordinates for the selected location
     const locationCoords = {
@@ -232,7 +230,6 @@ export default function BookingPage() {
       if (dropoffMarkerRef.current) {
         dropoffMarkerRef.current.setLatLng([coords.lat, coords.lng]);
       } else {
-        const L = require('leaflet');
         dropoffMarkerRef.current = L.marker([coords.lat, coords.lng])
           .addTo(mapRef.current)
           .bindPopup(`Drop-off: ${location}`)
@@ -251,7 +248,6 @@ export default function BookingPage() {
           if (polylineRef.current) {
             polylineRef.current.setLatLngs(points);
           } else {
-            const L = require('leaflet');
             polylineRef.current = L.polyline(points, { color: 'blue' }).addTo(mapRef.current);
           }
           const d = mapRef.current.distance([terminal.lat, terminal.lng], [coords.lat, coords.lng]) / 1000;
@@ -418,7 +414,6 @@ export default function BookingPage() {
                         onChange={(e) => {
                           setDropoffSearch(e.target.value);
                           setShowDropoffDropdown(true);
-                          setWhenLocation(e.target.value);
                         }}
                         onFocus={() => setShowDropoffDropdown(true)}
                       />
