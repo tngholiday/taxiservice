@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
 const rideOptions = [
   {
@@ -203,7 +202,7 @@ export default function BookingPage() {
   }, [selectedAirport, selectedTerminal]);
 
   // Function to handle dropoff location selection
-  const handleDropoffSelect = (location: string) => {
+  const handleDropoffSelect = async (location: string) => {
     setDropoffSearch(location);
     setShowDropoffDropdown(false);
     
@@ -226,6 +225,9 @@ export default function BookingPage() {
       setDropoffCoords(coords);
       mapRef.current.setView([coords.lat, coords.lng], 15);
       
+      // Dynamically import Leaflet
+      const L = (await import('leaflet')).default;
+
       // Update or create dropoff marker
       if (dropoffMarkerRef.current) {
         dropoffMarkerRef.current.setLatLng([coords.lat, coords.lng]);
