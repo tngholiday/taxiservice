@@ -86,7 +86,11 @@ const terminalCoords: Record<string, { lat: number; lng: number }> = {
 export default function BookingPage() {
   const [activeTab, setActiveTab] = useState("DAILY RIDES");
   const [toLocation, setToLocation] = useState("");
+  const [dropoffSearch, setDropoffSearch] = useState("");
+  const [showDropoffDropdown, setShowDropoffDropdown] = useState(false);
+  const [showToDropdown, setShowToDropdown] = useState(false);
   const toInputRef = useRef<HTMLInputElement>(null);
+  const dropoffInputRef = useRef<HTMLInputElement>(null);
   const [selectedArea, setSelectedArea] = useState("");
   const [selectedAirport, setSelectedAirport] = useState("");
   const [areaAirportTab, setAreaAirportTab] = useState("AREA");
@@ -100,6 +104,28 @@ export default function BookingPage() {
   const markerRef = useRef<import('leaflet').Marker | null>(null);
   const dropoffMarkerRef = useRef<import('leaflet').Marker | null>(null);
   const polylineRef = useRef<import('leaflet').Polyline | null>(null);
+
+  // Sample locations for dropdowns
+  const commonLocations = [
+    "Tokyo Station",
+    "Shinjuku Station",
+    "Shibuya Station",
+    "Ginza",
+    "Roppongi",
+    "Akihabara",
+    "Ueno",
+    "Asakusa",
+    "Tokyo Skytree",
+    "Tokyo Disneyland"
+  ];
+
+  const filteredToLocations = commonLocations.filter(loc => 
+    loc.toLowerCase().includes(toLocation.toLowerCase())
+  );
+
+  const filteredDropoffLocations = commonLocations.filter(loc => 
+    loc.toLowerCase().includes(dropoffSearch.toLowerCase())
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -176,6 +202,64 @@ export default function BookingPage() {
     })();
     // No cleanup for demo; in production, clean up map instance on unmount
   }, [selectedAirport, selectedTerminal]);
+
+  // Function to handle dropoff location selection
+  const handleDropoffSelect = (location: string) => {
+    setDropoffSearch(location);
+    setShowDropoffDropdown(false);
+    setWhenLocation(`Drop-off at ${location}`);
+    
+    // Find coordinates for the selected location
+    const locationCoords = {
+      "Tokyo Station": { lat: 35.6812, lng: 139.7671 },
+      "Shinjuku Station": { lat: 35.6895, lng: 139.7004 },
+      "Shibuya Station": { lat: 35.6580, lng: 139.7016 },
+      "Ginza": { lat: 35.6716, lng: 139.7639 },
+      "Roppongi": { lat: 35.6618, lng: 139.7340 },
+      "Akihabara": { lat: 35.7022, lng: 139.7745 },
+      "Ueno": { lat: 35.7142, lng: 139.7744 },
+      "Asakusa": { lat: 35.7147, lng: 139.7967 },
+      "Tokyo Skytree": { lat: 35.7103, lng: 139.8091 },
+      "Tokyo Disneyland": { lat: 35.6329, lng: 139.8804 }
+    };
+
+    const coords = locationCoords[location as keyof typeof locationCoords];
+    if (coords && mapRef.current) {
+      setDropoffCoords(coords);
+      mapRef.current.setView([coords.lat, coords.lng], 15);
+      
+      // Update or create dropoff marker
+      if (dropoffMarkerRef.current) {
+        dropoffMarkerRef.current.setLatLng([coords.lat, coords.lng]);
+      } else {
+        const L = require('leaflet');
+        dropoffMarkerRef.current = L.marker([coords.lat, coords.lng])
+          .addTo(mapRef.current)
+          .bindPopup(`Drop-off: ${location}`)
+          .openPopup();
+      }
+
+      // Draw route if terminal is selected
+      if (selectedAirport && selectedTerminal) {
+        const key = `${selectedAirport}-${selectedTerminal}`;
+        const terminal = terminalCoords[key];
+        if (terminal) {
+          const points: [number, number][] = [
+            [terminal.lat, terminal.lng],
+            [coords.lat, coords.lng]
+          ];
+          if (polylineRef.current) {
+            polylineRef.current.setLatLngs(points);
+          } else {
+            const L = require('leaflet');
+            polylineRef.current = L.polyline(points, { color: 'blue' }).addTo(mapRef.current);
+          }
+          const d = mapRef.current.distance([terminal.lat, terminal.lng], [coords.lat, coords.lng]) / 1000;
+          setDistance(d);
+        }
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row">
@@ -271,40 +355,94 @@ export default function BookingPage() {
           {/* Show rest of form only if both area and airport are selected */}
           {selectedArea && selectedAirport && (
             <>
-              <label className="text-xs text-gray-500 font-semibold mt-2">TO</label>
-              {airportTerminals[selectedAirport] ? (
-                <select
-                  className="bg-white border border-gray-200 rounded px-3 py-3 text-sm mb-1 focus:border-red-600 focus:ring-1 focus:ring-red-600"
-                  value={selectedTerminal}
-                  onChange={e => setSelectedTerminal(e.target.value)}
-                >
-                  <option value="">Select Terminal</option>
-                  {airportTerminals[selectedAirport].map(terminal => (
-                    <option key={terminal} value={terminal}>{terminal}</option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  ref={toInputRef}
-                  className="bg-white border border-gray-200 rounded px-3 py-3 text-sm mb-1 focus:border-red-600 focus:ring-1 focus:ring-red-600"
-                  placeholder="Search for a locality or landmark"
-                  value={toLocation}
-                  onChange={e => setToLocation(e.target.value)}
-                  readOnly={selectedTerminal !== ""}
-                />
-              )}
-              <label className="text-xs text-gray-500 font-semibold">WHEN</label>
-              <select 
-                className="bg-white border border-gray-200 rounded px-3 py-3 text-sm focus:border-red-600 focus:ring-1 focus:ring-red-600"
-                value={whenLocation}
-                onChange={e => setWhenLocation(e.target.value)}
-              >
-                <option value="Now">Now</option>
-                <option value="Schedule for later">Schedule for later</option>
-                {whenLocation.startsWith('Drop-off') && (
-                  <option value={whenLocation}>{whenLocation}</option>
-                )}
-              </select>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-500 font-semibold">TO</label>
+                  {airportTerminals[selectedAirport] ? (
+                    <select
+                      className="w-full bg-white border border-gray-200 rounded px-3 py-3 text-sm focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                      value={selectedTerminal}
+                      onChange={e => setSelectedTerminal(e.target.value)}
+                    >
+                      <option value="">Select Terminal</option>
+                      {airportTerminals[selectedAirport].map(terminal => (
+                        <option key={terminal} value={terminal}>{terminal}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        ref={toInputRef}
+                        className="w-full bg-white border border-gray-200 rounded px-3 py-3 text-sm focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                        placeholder="Enter destination"
+                        value={toLocation}
+                        onChange={(e) => {
+                          setToLocation(e.target.value);
+                          setShowToDropdown(true);
+                        }}
+                        onFocus={() => setShowToDropdown(true)}
+                      />
+                      {showToDropdown && toLocation && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                          {filteredToLocations.length > 0 ? (
+                            filteredToLocations.map((location, index) => (
+                              <div
+                                key={index}
+                                className="px-3 py-2 hover:bg-red-50 cursor-pointer text-sm"
+                                onClick={() => {
+                                  setToLocation(location);
+                                  setShowToDropdown(false);
+                                }}
+                              >
+                                {location}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">No locations found</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-xs text-gray-500 font-semibold">WHEN</label>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <input
+                        ref={dropoffInputRef}
+                        className="w-full bg-white border border-gray-200 rounded px-3 py-3 text-sm focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                        placeholder="Search dropoff location"
+                        value={dropoffSearch}
+                        onChange={(e) => {
+                          setDropoffSearch(e.target.value);
+                          setShowDropoffDropdown(true);
+                          setWhenLocation(e.target.value);
+                        }}
+                        onFocus={() => setShowDropoffDropdown(true)}
+                      />
+                      {showDropoffDropdown && dropoffSearch && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                          {filteredDropoffLocations.length > 0 ? (
+                            filteredDropoffLocations.map((location, index) => (
+                              <div
+                                key={index}
+                                className="px-3 py-2 hover:bg-red-50 cursor-pointer text-sm"
+                                onClick={() => handleDropoffSelect(location)}
+                              >
+                                {location}
+                              </div>
+                            ))
+                          ) : (
+                            <div className="px-3 py-2 text-sm text-gray-500">No locations found</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </>
           )}
         </div>
